@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Rhythm — Activity Alarm Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #FDF6EC;
+    --bg-secondary: #FFF8F0;
+    --bg-card: #FFFFFF;
+    --text-primary: #2D2016;
+    --text-secondary: #7A6B5D;
+    --text-muted: #B8A99A;
+    --accent: #D4652E;
+    --accent-light: #F2A76840;
+    --accent-glow: #D4652E33;
+    --success: #4A8C5C;
+    --success-bg: #4A8C5C18;
+    --danger: #C44B3F;
+    --danger-bg: #C44B3F15;
+    --border: #E8DDD0;
+    --shadow: 0 2px 12px rgba(45,32,22,0.06);
+    --shadow-lg: 0 8px 32px rgba(45,32,22,0.1);
+    --ring: #D4652E44;
+    --alarm-pulse: #D4652E;
+    --bg-input: #FAF4EA;
+    --toggle-off: #CDBFB0;
+    --progress-bg: #EDE4D8;
+    --divider: #F0E6D9;
+  }
+
+  html.dark {
+    --bg-primary: #1A1410;
+    --bg-secondary: #221C16;
+    --bg-card: #2A231B;
+    --text-primary: #F0E6D8;
+    --text-secondary: #A89888;
+    --text-muted: #6B5D50;
+    --accent: #E8844A;
+    --accent-light: #E8844A30;
+    --accent-glow: #E8844A22;
+    --success: #6BBF7E;
+    --success-bg: #6BBF7E18;
+    --danger: #E8675D;
+    --danger-bg: #E8675D15;
+    --border: #3A3028;
+    --shadow: 0 2px 12px rgba(0,0,0,0.2);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.3);
+    --ring: #E8844A33;
+    --alarm-pulse: #E8844A;
+    --bg-input: #332B22;
+    --toggle-off: #4A4038;
+    --progress-bg: #332B22;
+    --divider: #332B22;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    right: -30%;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--accent-glow), transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app-container {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 20px 16px 100px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 24px 0 20px;
+    animation: fadeDown 0.6s ease;
+  }
+
+  .header-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+    display: inline-block;
+    animation: pulse-gentle 3s ease-in-out infinite;
+  }
+
+  .header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+  }
+
+  .header p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 300;
+  }
+
+  .current-time {
+    font-family: 'DM Serif Display', serif;
+    font-size: 38px;
+    color: var(--accent);
+    margin: 8px 0;
+    letter-spacing: 1px;
+  }
+
+  .current-date {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  /* Progress */
+  .progress-section {
+    margin: 16px 0 20px;
+    animation: fadeDown 0.6s ease 0.1s both;
+  }
+
+  .progress-bar-container {
+    background: var(--progress-bg);
+    border-radius: 20px;
+    height: 10px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 20px;
+    background: linear-gradient(90deg, var(--accent), var(--success));
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+  }
+
+  .progress-bar-fill::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 20px;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+    border-radius: 0 20px 20px 0;
+  }
+
+  .progress-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .progress-text span:last-child {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Activity List */
+  .activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .activity-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow);
+    animation: fadeUp 0.4s ease both;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .activity-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-1px);
+  }
+
+  .activity-card.completed {
+    opacity: 0.6;
+  }
+
+  .activity-card.completed .activity-name {
+    text-decoration: line-through;
+    color: var(--text-muted);
+  }
+
+  .activity-card.alarming {
+    border-color: var(--alarm-pulse);
+    animation: alarm-border 0.8s ease-in-out infinite alternate;
+  }
+
+  .activity-card.alarming::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--danger-bg);
+    pointer-events: none;
+  }
+
+  /* Checkbox */
+  .checkbox-wrapper {
+    flex-shrink: 0;
+  }
+
+  .custom-checkbox {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border);
+    border-radius: 7px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s ease;
+    background: var(--bg-secondary);
+  }
+
+  .custom-checkbox:hover {
+    border-color: var(--accent);
+  }
+
+  .custom-checkbox.checked {
+    background: var(--success);
+    border-color: var(--success);
+  }
+
+  .custom-checkbox.checked i {
+    color: white;
+    font-size: 12px;
+    animation: checkPop 0.3s ease;
+  }
+
+  /* Activity Info */
+  .activity-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .activity-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+    transition: all 0.3s ease;
+  }
+
+  .activity-time-display {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .activity-time-display i {
+    font-size: 10px;
+  }
+
+  /* Controls */
+  .activity-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .time-input-wrapper {
+    position: relative;
+  }
+
+  .time-input {
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    width: 110px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+  }
+
+  .time-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--ring);
+  }
+
+  /* Alarm Toggle */
+  .alarm-toggle {
+    width: 38px;
+    height: 22px;
+    border-radius: 11px;
+    background: var(--toggle-off);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+  }
+
+  .alarm-toggle.active {
+    background: var(--accent);
+  }
+
+  .alarm-toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+
+  .alarm-toggle.active::after {
+    left: 19px;
+  }
+
+  /* Delete Button */
+  .delete-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .delete-btn:hover {
+    background: var(--danger-bg);
+    color: var(--danger);
+  }
+
+  /* Add Activity */
+  .add-section {
+    margin-top: 16px;
+    animation: fadeUp 0.4s ease 0.3s both;
+  }
+
+  .add-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .add-input {
+    flex: 1;
+    font-family: 'Outfit', sans-serif;
+    font-size: 16px;
+    padding: 12px 16px;
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    outline: none;
+    transition: all 0.2s ease;
+  }
+
+  .add-input::placeholder {
+    color: var(--text-muted);
+    font-weight: 300;
+  }
+
+  .add-input:focus {
+    border-color: var(--accent);
+    border-style: solid;
+    box-shadow: 0 0 0 3px var(--ring);
+  }
+
+  .add-btn {
+    width: 48px;
+    height: 48px;
+    border: none;
+    background: var(--accent);
+    color: white;
+    border-radius: 12px;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px var(--accent-glow);
+  }
+
+  .add-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px var(--accent-glow);
+  }
+
+  .add-btn:active {
+    transform: scale(0.95);
+  }
+
+  /* Alarm Overlay */
+  .alarm-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(6px);
+    animation: fadeIn 0.3s ease;
+  }
+
+  .alarm-overlay.active {
+    display: flex;
+  }
+
+  .alarm-modal {
+    background: var(--bg-card);
+    border-radius: 24px;
+    padding: 40px 32px;
+    text-align: center;
+    max-width: 340px;
+    width: 90%;
+    box-shadow: var(--shadow-lg);
+    animation: scaleUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .alarm-modal-icon {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: var(--danger-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    animation: alarm-ring 0.6s ease-in-out infinite alternate;
+  }
+
+  .alarm-modal-icon i {
+    font-size: 30px;
+    color: var(--danger);
+  }
+
+  .alarm-modal h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+
+  .alarm-modal p {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 24px;
+    font-weight: 300;
+  }
+
+  .alarm-modal .dismiss-btn {
+    font-family: 'Outfit', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px 40px;
+    border: none;
+    background: var(--accent);
+    color: white;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px var(--accent-glow);
+  }
+
+  .alarm-modal .dismiss-btn:hover {
+    transform: scale(1.03);
+  }
+
+  /* Snooze section */
+  .snooze-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--divider);
+  }
+
+  .snooze-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  .snooze-options {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .snooze-btn {
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px;
+    border: 1.5px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .snooze-btn i {
+    font-size: 11px;
+    color: var(--accent);
+  }
+
+  .snooze-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-light);
+    transform: translateY(-1px);
+  }
+
+  .snooze-btn:active {
+    transform: scale(0.96);
+  }
+
+  /* Snoozed badge on activity card */
+  .snooze-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-light);
+    padding: 2px 8px;
+    border-radius: 6px;
+    margin-left: 6px;
+    animation: pulse-gentle 2s ease-in-out infinite;
+  }
+
+  .snooze-badge i {
+    font-size: 9px;
+  }
+
+  /* Confirm Dialog */
+  .confirm-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .confirm-overlay.active {
+    display: flex;
+  }
+
+  .confirm-modal {
+    background: var(--bg-card);
+    border-radius: 18px;
+    padding: 28px 24px;
+    text-align: center;
+    max-width: 320px;
+    width: 90%;
+    box-shadow: var(--shadow-lg);
+    animation: scaleUp 0.3s ease;
+  }
+
+  .confirm-modal p {
+    font-size: 15px;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    font-weight: 400;
+  }
+
+  .confirm-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .confirm-buttons button {
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .confirm-cancel {
+    background: var(--bg-input);
+    color: var(--text-secondary);
+  }
+
+  .confirm-cancel:hover { opacity: 0.8; }
+
+  .confirm-delete {
+    background: var(--danger);
+    color: white;
+  }
+
+  .confirm-delete:hover { opacity: 0.9; }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+  }
+
+  .empty-state i {
+    font-size: 40px;
+    margin-bottom: 12px;
+    opacity: 0.4;
+  }
+
+  .empty-state p {
+    font-size: 14px;
+    font-weight: 300;
+  }
+
+  /* Animations */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes scaleUp {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes checkPop {
+    0% { transform: scale(0); }
+    60% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes pulse-gentle {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+
+  @keyframes alarm-border {
+    from { border-color: var(--border); }
+    to { border-color: var(--alarm-pulse); }
+  }
+
+  @keyframes alarm-ring {
+    0% { transform: rotate(-10deg) scale(1); }
+    100% { transform: rotate(10deg) scale(1.05); }
+  }
+
+  /* Responsive */
+  @media (max-width: 400px) {
+    .activity-card {
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .activity-controls {
+      width: 100%;
+      justify-content: flex-end;
+      padding-left: 36px;
+    }
+    .header h1 { font-size: 24px; }
+    .current-time { font-size: 32px; }
+  }
+</style>
+</head>
+<body>
+<div class="app-container">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-icon">🔔</div>
+    <h1>Daily Rhythm</h1>
+    <p>Your activities for the day</p>
+    <div class="current-time" id="currentTime">--:--</div>
+    <div class="current-date" id="currentDate"></div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-section">
+    <div class="progress-bar-container">
+      <div class="progress-bar-fill" id="progressFill" style="width: 0%"></div>
+    </div>
+    <div class="progress-text">
+      <span id="progressLabel">0 of 0 done</span>
+      <span id="progressPercent">0%</span>
+    </div>
+  </div>
+
+  <!-- Activities -->
+  <div class="activity-list" id="activityList"></div>
+
+  <!-- Add Activity -->
+  <div class="add-section">
+    <div class="add-form">
+      <input type="text" class="add-input" id="addInput" placeholder="Add a new activity..." maxlength="60">
+      <button class="add-btn" id="addBtn" aria-label="Add activity">
+        <i class="fas fa-plus"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Alarm Modal -->
+<div class="alarm-overlay" id="alarmOverlay">
+  <div class="alarm-modal">
+    <div class="alarm-modal-icon">
+      <i class="fas fa-bell"></i>
+    </div>
+    <h2 id="alarmTitle">Time's up!</h2>
+    <p id="alarmMessage">It's time for your activity</p>
+    <button class="dismiss-btn" id="dismissBtn">Dismiss</button>
+    <div class="snooze-section">
+      <div class="snooze-label">Or snooze for</div>
+      <div class="snooze-options">
+        <button class="snooze-btn" data-snooze="1"><i class="fas fa-clock-rotate-left"></i> 1 min</button>
+        <button class="snooze-btn" data-snooze="5"><i class="fas fa-clock-rotate-left"></i> 5 min</button>
+        <button class="snooze-btn" data-snooze="10"><i class="fas fa-clock-rotate-left"></i> 10 min</button>
+        <button class="snooze-btn" data-snooze="15"><i class="fas fa-clock-rotate-left"></i> 15 min</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Delete Dialog -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-modal">
+    <p id="confirmMessage">Remove this activity?</p>
+    <div class="confirm-buttons">
+      <button class="confirm-cancel" id="confirmCancel">Cancel</button>
+      <button class="confirm-delete" id="confirmDelete">Remove</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Dark mode detection
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.documentElement.classList.add('dark');
+  }
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+    if (event.matches) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  });
+
+  // Default activities
+  const defaultActivities = [
+    { id: 1, name: 'Get to the office', time: '08:00', alarmOn: true, done: false },
+    { id: 2, name: 'Start work', time: '08:30', alarmOn: true, done: false },
+    { id: 3, name: 'Get breakfast', time: '09:00', alarmOn: true, done: false },
+    { id: 4, name: 'Continue with work', time: '10:00', alarmOn: true, done: false },
+    { id: 5, name: 'Meetings', time: '13:00', alarmOn: true, done: false },
+    { id: 6, name: 'Close work', time: '17:00', alarmOn: true, done: false },
+    { id: 7, name: 'Class', time: '18:00', alarmOn: true, done: false },
+    { id: 8, name: 'Home', time: '20:00', alarmOn: true, done: false }
+  ];
+
+  let activities = JSON.parse(JSON.stringify(defaultActivities));
+  let nextId = 9;
+  let audioCtx = null;
+  let alarmQueue = [];
+  let currentAlarmInterval = null;
+  let firedAlarms = new Set();
+  let pendingDeleteId = null;
+  let snoozedAlarms = {}; // { activityId: { timeout, resumeTime } }
+  let currentAlarmActId = null;
+
+  // Audio context
+  function getAudioContext() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioCtx;
+  }
+
+  function playAlarmSound() {
+    try {
+      const ctx = getAudioContext();
+      const now = ctx.currentTime;
+
+      // Play a pleasant two-tone chime
+      const notes = [880, 1108.73, 880, 1108.73];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.18);
+        gain.gain.setValueAtTime(0, now + i * 0.18);
+        gain.gain.linearRampToValueAtTime(0.25, now + i * 0.18 + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.18 + 0.16);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + i * 0.18);
+        osc.stop(now + i * 0.18 + 0.18);
+      });
+    } catch (e) {
+      // Audio not available
+    }
+  }
+
+  function stopAlarmSound() {
+    if (currentAlarmInterval) {
+      clearInterval(currentAlarmInterval);
+      currentAlarmInterval = null;
+    }
+  }
+
+  function startRepeatingAlarm() {
+    playAlarmSound();
+    currentAlarmInterval = setInterval(playAlarmSound, 2500);
+  }
+
+  // Clock
+  function updateClock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    document.getElementById('currentTime').textContent = h + ':' + m;
+
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', options);
+  }
+
+  // Progress
+  function updateProgress() {
+    const total = activities.length;
+    const done = activities.filter(a => a.done).length;
+    const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = done + ' of ' + total + ' done';
+    document.getElementById('progressPercent').textContent = pct + '%';
+  }
+
+  // Format time for display
+  function formatTime12(time24) {
+    if (!time24) return 'No time set';
+    const [h, m] = time24.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const hour = h % 12 || 12;
+    return hour + ':' + String(m).padStart(2, '0') + ' ' + ampm;
+  }
+
+  // Render
+  function renderActivities() {
+    const list = document.getElementById('activityList');
+
+    if (activities.length === 0) {
+      list.innerHTML = '<div class="empty-state"><i class="fas fa-clipboard-list"></i><p>No activities yet. Add one below!</p></div>';
+      updateProgress();
+      return;
+    }
+
+    list.innerHTML = activities.map((act, index) => {
+      const isAlarming = alarmQueue.includes(act.id);
+      return '<div class="activity-card' +
+        (act.done ? ' completed' : '') +
+        (isAlarming ? ' alarming' : '') +
+        '" style="animation-delay:' + (index * 0.05) + 's" data-id="' + act.id + '">' +
+        '<div class="checkbox-wrapper">' +
+          '<div class="custom-checkbox' + (act.done ? ' checked' : '') + '" data-action="toggle" data-id="' + act.id + '">' +
+            (act.done ? '<i class="fas fa-check"></i>' : '') +
+          '</div>' +
+        '</div>' +
+        '<div class="activity-info">' +
+          '<div class="activity-name">' + escapeHtml(act.name) + '</div>' +
+          '<div class="activity-time-display">' +
+            '<i class="far fa-clock"></i> ' + (act.time ? formatTime12(act.time) : 'Tap to set time') +
+            (act.alarmOn && act.time ? ' &middot; <i class="fas fa-bell" style="color:var(--accent);font-size:10px"></i>' : '') +
+            (snoozedAlarms[act.id] ? '<span class="snooze-badge"><i class="fas fa-clock-rotate-left"></i>Snoozed ' + getSnoozeBadgeText(act.id) + '</span>' : '') +
+          '</div>' +
+        '</div>' +
+        '<div class="activity-controls">' +
+          '<input type="time" class="time-input" value="' + (act.time || '') + '" data-action="settime" data-id="' + act.id + '">' +
+          '<div class="alarm-toggle' + (act.alarmOn ? ' active' : '') + '" data-action="alarm" data-id="' + act.id + '" title="Toggle alarm"></div>' +
+          '<button class="delete-btn" data-action="delete" data-id="' + act.id + '" aria-label="Delete"><i class="fas fa-trash-alt"></i></button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    updateProgress();
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Event delegation
+  document.getElementById('activityList').addEventListener('click', function(e) {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+
+    const action = target.getAttribute('data-action');
+    const id = parseInt(target.getAttribute('data-id'), 10);
+
+    if (action === 'toggle') {
+      toggleDone(id);
+    } else if (action === 'alarm') {
+      toggleAlarm(id);
+    } else if (action === 'delete') {
+      showConfirmDelete(id);
+    }
+  });
+
+  document.getElementById('activityList').addEventListener('change', function(e) {
+    if (e.target.getAttribute('data-action') === 'settime') {
+      const id = parseInt(e.target.getAttribute('data-id'), 10);
+      setTime(id, e.target.value);
+    }
+  });
+
+  function clearSnooze(id) {
+    if (snoozedAlarms[id]) {
+      clearTimeout(snoozedAlarms[id].timeout);
+      delete snoozedAlarms[id];
+    }
+  }
+
+  function toggleDone(id) {
+    const act = activities.find(a => a.id === id);
+    if (act) {
+      act.done = !act.done;
+      if (act.done) {
+        // Remove from alarm queue if completed
+        alarmQueue = alarmQueue.filter(aid => aid !== id);
+        firedAlarms.add(getAlarmKey(act));
+        clearSnooze(id);
+      }
+      renderActivities();
+    }
+  }
+
+  function toggleAlarm(id) {
+    const act = activities.find(a => a.id === id);
+    if (act) {
+      act.alarmOn = !act.alarmOn;
+      if (!act.alarmOn) {
+        alarmQueue = alarmQueue.filter(aid => aid !== id);
+        clearSnooze(id);
+      }
+      renderActivities();
+    }
+  }
+
+  function setTime(id, newTime) {
+    const act = activities.find(a => a.id === id);
+    if (act) {
+      act.time = newTime;
+      // Reset fired alarm for this activity if time changes
+      firedAlarms.delete(getAlarmKey(act));
+      renderActivities();
+    }
+  }
+
+  function getAlarmKey(act) {
+    return act.id + '_' + act.time;
+  }
+
+  // Delete with confirmation
+  function showConfirmDelete(id) {
+    const act = activities.find(a => a.id === id);
+    if (!act) return;
+    pendingDeleteId = id;
+    document.getElementById('confirmMessage').textContent = 'Remove "' + act.name + '"?';
+    document.getElementById('confirmOverlay').classList.add('active');
+  }
+
+  document.getElementById('confirmCancel').addEventListener('click', function() {
+    pendingDeleteId = null;
+    document.getElementById('confirmOverlay').classList.remove('active');
+  });
+
+  document.getElementById('confirmDelete').addEventListener('click', function() {
+    if (pendingDeleteId !== null) {
+      activities = activities.filter(a => a.id !== pendingDeleteId);
+      alarmQueue = alarmQueue.filter(aid => aid !== pendingDeleteId);
+      clearSnooze(pendingDeleteId);
+      pendingDeleteId = null;
+      document.getElementById('confirmOverlay').classList.remove('active');
+      renderActivities();
+    }
+  });
+
+  document.getElementById('confirmOverlay').addEventListener('click', function(e) {
+    if (e.target === this) {
+      pendingDeleteId = null;
+      this.classList.remove('active');
+    }
+  });
+
+  // Add activity
+  function addActivity() {
+    const input = document.getElementById('addInput');
+    const name = input.value.trim();
+    if (!name) return;
+
+    activities.push({
+      id: nextId++,
+      name: name,
+      time: '',
+      alarmOn: false,
+      done: false
+    });
+
+    input.value = '';
+    renderActivities();
+
+    // Scroll to the bottom
+    const list = document.getElementById('activityList');
+    const lastCard = list.lastElementChild;
+    if (lastCard) {
+      lastCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
+  document.getElementById('addBtn').addEventListener('click', addActivity);
+  document.getElementById('addInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addActivity();
+    }
+  });
+
+  // Alarm checker
+  function checkAlarms() {
+    const now = new Date();
+    const currentHH = String(now.getHours()).padStart(2, '0');
+    const currentMM = String(now.getMinutes()).padStart(2, '0');
+    const currentTime = currentHH + ':' + currentMM;
+
+    activities.forEach(act => {
+      if (act.alarmOn && act.time && act.time === currentTime && !act.done && !firedAlarms.has(getAlarmKey(act))) {
+        if (!alarmQueue.includes(act.id)) {
+          alarmQueue.push(act.id);
+          firedAlarms.add(getAlarmKey(act));
+          showAlarm(act);
+        }
+      }
+    });
+  }
+
+  function showAlarm(act) {
+    currentAlarmActId = act.id;
+    document.getElementById('alarmTitle').textContent = 'Time for: ' + act.name;
+    document.getElementById('alarmMessage').textContent = 'Scheduled at ' + formatTime12(act.time);
+    document.getElementById('alarmOverlay').classList.add('active');
+    startRepeatingAlarm();
+    renderActivities();
+  }
+
+  // Snooze helper: get remaining time text for badge
+  function getSnoozeBadgeText(actId) {
+    var info = snoozedAlarms[actId];
+    if (!info) return '';
+    var remaining = Math.max(0, Math.ceil((info.resumeTime - Date.now()) / 60000));
+    return remaining + 'm';
+  }
+
+  // Snooze an alarm for N minutes
+  function snoozeAlarm(minutes) {
+    stopAlarmSound();
+    document.getElementById('alarmOverlay').classList.remove('active');
+
+    var actId = currentAlarmActId;
+    currentAlarmActId = null;
+
+    // Remove from alarm queue
+    alarmQueue = alarmQueue.filter(function(aid) { return aid !== actId; });
+
+    // Clear any existing snooze for this activity
+    if (snoozedAlarms[actId] && snoozedAlarms[actId].timeout) {
+      clearTimeout(snoozedAlarms[actId].timeout);
+    }
+
+    var resumeTime = Date.now() + minutes * 60000;
+
+    // Set snooze timer
+    var timeoutId = setTimeout(function() {
+      delete snoozedAlarms[actId];
+      var act = activities.find(function(a) { return a.id === actId; });
+      if (act && !act.done && act.alarmOn) {
+        alarmQueue.push(actId);
+        showAlarm(act);
+      }
+      renderActivities();
+    }, minutes * 60000);
+
+    snoozedAlarms[actId] = { timeout: timeoutId, resumeTime: resumeTime };
+
+    // If more alarms in queue, show the next one
+    if (alarmQueue.length > 0) {
+      var nextAct = activities.find(function(a) { return a.id === alarmQueue[0]; });
+      if (nextAct) {
+        setTimeout(function() { showAlarm(nextAct); }, 300);
+      }
+    }
+
+    renderActivities();
+  }
+
+  // Update snooze badges every 15 seconds
+  setInterval(function() {
+    if (Object.keys(snoozedAlarms).length > 0) {
+      renderActivities();
+    }
+  }, 15000);
+
+  // Snooze button listeners
+  document.querySelectorAll('.snooze-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var minutes = parseInt(this.getAttribute('data-snooze'), 10);
+      snoozeAlarm(minutes);
+    });
+  });
+
+  document.getElementById('dismissBtn').addEventListener('click', function() {
+    stopAlarmSound();
+    document.getElementById('alarmOverlay').classList.remove('active');
+
+    var actId = currentAlarmActId;
+    currentAlarmActId = null;
+
+    // Remove from alarm queue
+    if (alarmQueue.length > 0) {
+      alarmQueue.shift();
+    }
+
+    // Clear snooze if dismissing
+    if (actId && snoozedAlarms[actId]) {
+      clearTimeout(snoozedAlarms[actId].timeout);
+      delete snoozedAlarms[actId];
+    }
+
+    // If more alarms pending, show next
+    if (alarmQueue.length > 0) {
+      var nextAct = activities.find(function(a) { return a.id === alarmQueue[0]; });
+      if (nextAct) {
+        setTimeout(function() { showAlarm(nextAct); }, 300);
+      }
+    }
+
+    renderActivities();
+  });
+
+  document.getElementById('alarmOverlay').addEventListener('click', function(e) {
+    if (e.target === this) {
+      document.getElementById('dismissBtn').click();
+    }
+  });
+
+  // Initialize
+  updateClock();
+  setInterval(updateClock, 1000);
+  setInterval(checkAlarms, 5000);
+  renderActivities();
+
+  // Initialize audio context on first user interaction
+  document.addEventListener('click', function initAudio() {
+    getAudioContext();
+    document.removeEventListener('click', initAudio);
+  }, { once: true });
+</script>
+</body>
+</html>
+
